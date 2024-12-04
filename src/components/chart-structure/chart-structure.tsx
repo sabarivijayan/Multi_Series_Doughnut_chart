@@ -53,59 +53,55 @@ const WealthPillarsChart = () => {
     return chartData.find(item => item.name === name) || { label: '0/10', value: 0, name };
   };
 
-  // Create curved text plugin
   const curvedTextPlugin = {
     id: 'curvedText',
-    afterDraw: (chart: any) => {
+    afterDraw: (chart:any) => {
       const ctx = chart.ctx;
       const chartArea = chart.chartArea;
       const centerX = (chartArea.left + chartArea.right) / 2;
       const centerY = (chartArea.top + chartArea.bottom) / 2;
-
+  
       ctx.save();
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#000';
-      ctx.font = '12px Arial';
-
-      // Draw text for outer ring
-      const outerRadius = chart.getDatasetMeta(0).data[0].outerRadius;
-      const innerRadius = chart.getDatasetMeta(0).data[0].innerRadius;
-      const middleRadius = (outerRadius + innerRadius) / 2;
-
-      outerSections.forEach((section, i) => {
-        const angle = (i * Math.PI * 2) / outerSections.length - Math.PI / 2;
-        const data = getDataForSection(section);
-        const x = centerX + Math.cos(angle) * middleRadius;
-        const y = centerY + Math.sin(angle) * middleRadius;
-        
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(angle + Math.PI / 2);
-        ctx.fillText(`${section} (${data.label})`, 0, 0);
-        ctx.restore();
-      });
-
-      // Draw text for inner ring
-      const innerRingMiddleRadius = (chart.getDatasetMeta(1).data[0].outerRadius + 
-                                   chart.getDatasetMeta(1).data[0].innerRadius) / 2;
-
-      innerSections.forEach((section, i) => {
-        const angle = (i * Math.PI * 2) / innerSections.length - Math.PI / 2;
-        const data = getDataForSection(section);
-        const x = centerX + Math.cos(angle) * innerRingMiddleRadius;
-        const y = centerY + Math.sin(angle) * innerRingMiddleRadius;
-        
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(angle + Math.PI / 2);
-        ctx.fillText(`${section} (${data.label})`, 0, 0);
-        ctx.restore();
-      });
-
+  
+      // Helper to calculate position in the arc
+      const drawTextOnArc = (meta:any, sections:any, isInner:any) => {
+        meta.data.forEach((arc:any, index:any) => {
+          const section = sections[index];
+          const data = getDataForSection(section);
+  
+          const angle = (arc.startAngle + arc.endAngle) / 2; // Middle angle
+          const radius = isInner
+            ? (arc.outerRadius + arc.innerRadius) / 2
+            : (arc.outerRadius + arc.innerRadius) / 2;
+  
+          const x = centerX + Math.cos(angle) * radius;
+          const y = centerY + Math.sin(angle) * radius;
+  
+          ctx.save();
+          ctx.fillStyle = '#000'; // Custom text color
+          ctx.font = '12px Arial'; // Custom font style
+          ctx.translate(x, y);
+          ctx.rotate(angle + Math.PI / 2);
+          ctx.fillText(section, 0, -10); // Section name
+          ctx.fillText(data.label, 0, 10); // Data label
+          ctx.restore();
+        });
+      };
+  
+      // Draw for outer ring
+      const outerMeta = chart.getDatasetMeta(0);
+      drawTextOnArc(outerMeta, outerSections, false);
+  
+      // Draw for inner ring
+      const innerMeta = chart.getDatasetMeta(1);
+      drawTextOnArc(innerMeta, innerSections, true);
+  
       ctx.restore();
-    }
+    },
   };
+  
 
   const data: ChartData<'doughnut'> = {
     labels: [],
@@ -120,6 +116,8 @@ const WealthPillarsChart = () => {
         borderColor: '#FFFFFF',
         borderWidth: 2,
         weight: 40,
+        circular: true,
+        
       },
       // Inner ring (4 sections)
       {
