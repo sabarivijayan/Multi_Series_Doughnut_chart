@@ -164,13 +164,23 @@ const WealthPillarsChart = () => {
     onClick: (_event, elements, chart) => {
       if (elements.length > 0) {
         const chartElement = elements[0];
-        const section =
-          chartElement.datasetIndex === 0
-            ? outerSections[chartElement.index]
-            : innerSections[chartElement.index];
-        window.location.href = `/section/${section}`;
+        let section;
+        // Determine if the clicked section is from the outer or inner dataset
+        if (chartElement.datasetIndex === 0) {
+          // Outer section
+          section = outerSections[chartElement.index];
+        } else if (chartElement.datasetIndex === 1) {
+          // Inner section
+          section = innerSections[chartElement.index];
+        }
+    
+        if (section) {
+          // Redirect to the corresponding section page
+          window.location.href = `/section/${section}`;
+        }
       }
     },
+    
     layout: { padding: 20 },
     animation: { animateRotate: true, animateScale: true },
   };
