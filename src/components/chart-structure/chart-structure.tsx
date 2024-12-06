@@ -194,7 +194,7 @@ const WealthPillarsChart = () => {
     plugins: {
       legend: { display: false },
       tooltip: {
-        enabled: true,
+        enabled: false,
         callbacks: {
           label: function (context) {
             const sections =
@@ -216,6 +216,10 @@ const WealthPillarsChart = () => {
         window.location.href = `/section/${section}`;
       }
     },
+    onHover: (event, elements) => {
+      const canvas = event.native?.target as HTMLCanvasElement;
+      canvas.style.cursor = elements.length ? 'pointer' : 'default';
+    },
     layout: { padding: 20 },
     animation: { animateRotate: true, animateScale: true },
     hover: {
@@ -225,7 +229,7 @@ const WealthPillarsChart = () => {
     },
     elements: {
       arc: {
-        hoverOffset: 50, // Bulging effect when hovered
+        hoverOffset: 50,
       },
     },
   };
