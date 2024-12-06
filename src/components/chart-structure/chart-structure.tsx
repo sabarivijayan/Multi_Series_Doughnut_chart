@@ -40,15 +40,44 @@ const WealthPillarsChart = () => {
     fetchData();
   }, []);
 
-  const getColor = (label: string | number) => {
-    const numericValue = parseInt(String(label).split('/')[0], 10); // Convert label to string and extract numeric part
-    if (numericValue >= 1 && numericValue <= 2) return '#FF4444'; // Red
-    if (numericValue >= 3 && numericValue <= 4) return '#FF8C42'; // Orange
-    if (numericValue >= 5 && numericValue <= 6) return '#FFD700'; // Yellow
-    if (numericValue === 7) return '#9ACD32'; // Lime
-    if (numericValue >= 8 && numericValue <= 10) return '#4CAF50'; // Green
-    return '#CCCCCC'; // Default color for missing or invalid labels
+  const getColor = (
+    ctx: CanvasRenderingContext2D,
+    chartArea: any,
+    numericValue: number
+  ) => {
+    const { width, height } = chartArea;
+    const gradient = ctx.createLinearGradient(0, height, width, 0);
+
+  
+    if (numericValue >= 1 && numericValue <= 2) {
+      // Red gradient
+      gradient.addColorStop(0, '#FF0101'); // Bright red
+      gradient.addColorStop(1, '#997A00'); // Dark red
+    } else if (numericValue >= 3 && numericValue <= 4) {
+      // Orange gradient
+      gradient.addColorStop(0, '#F67119'); // Bright orange
+      gradient.addColorStop(1, '#90420F'); // Dark orange
+    } else if (numericValue >= 5 && numericValue <= 6) {
+      // Yellow gradient
+      gradient.addColorStop(0, '#FFFF00'); // Bright yellow
+      gradient.addColorStop(1, '#8C8C00'); // Dark yellow
+    } else if (numericValue === 7) {
+      // Lime gradient
+      gradient.addColorStop(0, '#CCFF33'); // Bright lime
+      gradient.addColorStop(1, '#7A991F'); // Dark lime
+    } else if (numericValue >= 8 && numericValue <= 10) {
+      // Green gradient
+      gradient.addColorStop(0, '#78E019'); // Bright green
+      gradient.addColorStop(1, '#008027'); // Dark green
+    } else {
+      // Default grey gradient
+      gradient.addColorStop(0, '#CCCCCC'); // Light grey
+      gradient.addColorStop(1, '#999999'); // Dark grey
+    }
+  
+    return gradient;
   };
+  
 
   const outerSections = ['Governance', 'Structures', 'Sustainable Philanthropy', 'Assets', 'Advisors', 'Documentation'];
   const innerSections = ['Vision', 'Education', 'Health', 'Communication'];
@@ -122,27 +151,43 @@ const WealthPillarsChart = () => {
     datasets: [
       {
         data: outerSections.map(() => 1),
-        backgroundColor: outerSections.map((section) => {
-          const data = getDataForSection(section);
-          return getColor(data.label);
-        }),
+        backgroundColor: function (context) {
+          const { chart } = context;
+          const { ctx, chartArea } = chart;
+  
+          if (!chartArea) return '#CCCCCC'; // Default fallback color
+  
+          return outerSections.map((section) => {
+            const data = getDataForSection(section);
+            const numericValue = parseInt(String(data.label).split('/')[0], 10);
+            return getColor(ctx, chartArea, numericValue);
+          })[context.dataIndex];
+        },
         borderColor: '#FFFFFF',
         borderWidth: 2,
         weight: 40,
       },
       {
         data: innerSections.map(() => 1),
-        backgroundColor: innerSections.map((section) => {
-          const data = getDataForSection(section);
-          return getColor(data.label);
-        }),
+        backgroundColor: function (context) {
+          const { chart } = context;
+          const { ctx, chartArea } = chart;
+  
+          if (!chartArea) return '#CCCCCC'; // Default fallback color
+  
+          return innerSections.map((section) => {
+            const data = getDataForSection(section);
+            const numericValue = parseInt(String(data.label).split('/')[0], 10);
+            return getColor(ctx, chartArea, numericValue);
+          })[context.dataIndex];
+        },
         borderColor: '#FFFFFF',
         borderWidth: 2,
-        weight: 30,
+        weight: 40,
       },
     ],
   };
-
+  
   const options: ChartOptions<'doughnut'> = {
     responsive: true,
     cutout: '50%',
