@@ -27,7 +27,7 @@ const WealthPillarsChart = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/chart-data');
+        const response = await fetch('http://localhost:4000/api/chart-data');
         const data = await response.json();
         setChartData(data);
       } catch (error) {
