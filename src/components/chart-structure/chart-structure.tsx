@@ -23,6 +23,45 @@ interface PillarData {
 const WealthPillarsChart = () => {
   const [chartData, setChartData] = useState<PillarData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [patterns, setPatterns] = useState<Record<string, CanvasPattern | null>>({});
+
+  // Function to create pattern from image URL based on score
+  const createPattern = async (
+    ctx: CanvasRenderingContext2D,
+    numericValue: number
+  ): Promise<CanvasPattern | null> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      
+      // Define image paths based on score ranges
+      let imagePath;
+      if (numericValue >= 1 && numericValue <= 2) {
+        imagePath = './gold.png';
+      } else if (numericValue >= 3 && numericValue <= 4) {
+        imagePath = '/patterns/orange-pattern.png';
+      } else if (numericValue >= 5 && numericValue <= 6) {
+        imagePath = '/patterns/yellow-pattern.png';
+      } else if (numericValue === 7) {
+        imagePath = '/patterns/lime-pattern.png';
+      } else if (numericValue >= 8 && numericValue <= 10) {
+        imagePath = '/patterns/green-pattern.png';
+      } else {
+        imagePath = '/patterns/grey-pattern.png';
+      }
+
+      img.onload = () => {
+        const pattern = ctx.createPattern(img, 'repeat');
+        resolve(pattern);
+      };
+
+      img.onerror = () => {
+        console.error(`Failed to load pattern: ${imagePath}`);
+        resolve(null);
+      };
+
+      img.src = imagePath;
+    });
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -39,45 +78,6 @@ const WealthPillarsChart = () => {
 
     fetchData();
   }, []);
-
-  const getColor = (
-    ctx: CanvasRenderingContext2D,
-    chartArea: any,
-    numericValue: number
-  ) => {
-    const { width, height } = chartArea;
-    const gradient = ctx.createLinearGradient(0, height, width, 0);
-
-  
-    if (numericValue >= 1 && numericValue <= 2) {
-      // Red gradient
-      gradient.addColorStop(0, '#FF0101'); // Bright red
-      gradient.addColorStop(1, '#997A00'); // Dark red
-    } else if (numericValue >= 3 && numericValue <= 4) {
-      // Orange gradient
-      gradient.addColorStop(0, '#F67119'); // Bright orange
-      gradient.addColorStop(1, '#90420F'); // Dark orange
-    } else if (numericValue >= 5 && numericValue <= 6) {
-      // Yellow gradient
-      gradient.addColorStop(0, '#FFFF00'); // Bright yellow
-      gradient.addColorStop(1, '#8C8C00'); // Dark yellow
-    } else if (numericValue === 7) {
-      // Lime gradient
-      gradient.addColorStop(0, '#CCFF33'); // Bright lime
-      gradient.addColorStop(1, '#7A991F'); // Dark lime
-    } else if (numericValue >= 8 && numericValue <= 10) {
-      // Green gradient
-      gradient.addColorStop(0, '#78E019'); // Bright green
-      gradient.addColorStop(1, '#008027'); // Dark green
-    } else {
-      // Default grey gradient
-      gradient.addColorStop(0, '#CCCCCC'); // Light grey
-      gradient.addColorStop(1, '#999999'); // Dark grey
-    }
-  
-    return gradient;
-  };
-  
 
   const outerSections = ['Governance', 'Structures', 'Sustainable Philanthropy', 'Assets', 'Advisors', 'Documentation'];
   const innerSections = ['Vision', 'Education', 'Health', 'Communication'];
@@ -145,7 +145,7 @@ const WealthPillarsChart = () => {
       ctx.restore();
     },
   };
-
+  
   const data: ChartData<'doughnut'> = {
     labels: [],
     datasets: [
@@ -153,15 +153,25 @@ const WealthPillarsChart = () => {
         data: outerSections.map(() => 1),
         backgroundColor: function (context) {
           const { chart } = context;
-          const { ctx, chartArea } = chart;
-  
-          if (!chartArea) return '#CCCCCC'; // Default fallback color
-  
-          return outerSections.map((section) => {
-            const data = getDataForSection(section);
-            const numericValue = parseInt(String(data.label).split('/')[0], 10);
-            return getColor(ctx, chartArea, numericValue);
-          })[context.dataIndex];
+          const { ctx } = chart;
+          
+          if (!ctx) return '#CCCCCC';
+
+          const section = outerSections[context.dataIndex];
+          const data = getDataForSection(section);
+          const numericValue = parseInt(String(data.label).split('/')[0], 10);
+          
+          const patternKey = `outer_${section}_${numericValue}`;
+          
+          if (!patterns[patternKey]) {
+            createPattern(ctx, numericValue).then(pattern => {
+              if (pattern) {
+                setPatterns(prev => ({ ...prev, [patternKey]: pattern }));
+              }
+            });
+          }
+          
+          return patterns[patternKey] || '#CCCCCC';
         },
         borderColor: '#FFFFFF',
         borderWidth: 2,
@@ -171,15 +181,25 @@ const WealthPillarsChart = () => {
         data: innerSections.map(() => 1),
         backgroundColor: function (context) {
           const { chart } = context;
-          const { ctx, chartArea } = chart;
-  
-          if (!chartArea) return '#CCCCCC'; // Default fallback color
-  
-          return innerSections.map((section) => {
-            const data = getDataForSection(section);
-            const numericValue = parseInt(String(data.label).split('/')[0], 10);
-            return getColor(ctx, chartArea, numericValue);
-          })[context.dataIndex];
+          const { ctx } = chart;
+          
+          if (!ctx) return '#CCCCCC';
+
+          const section = innerSections[context.dataIndex];
+          const data = getDataForSection(section);
+          const numericValue = parseInt(String(data.label).split('/')[0], 10);
+          
+          const patternKey = `inner_${section}_${numericValue}`;
+          
+          if (!patterns[patternKey]) {
+            createPattern(ctx, numericValue).then(pattern => {
+              if (pattern) {
+                setPatterns(prev => ({ ...prev, [patternKey]: pattern }));
+              }
+            });
+          }
+          
+          return patterns[patternKey] || '#CCCCCC';
         },
         borderColor: '#FFFFFF',
         borderWidth: 2,
@@ -194,7 +214,7 @@ const WealthPillarsChart = () => {
     plugins: {
       legend: { display: false },
       tooltip: {
-        enabled: true,
+        enabled: false,
         callbacks: {
           label: function (context) {
             const sections =
@@ -216,6 +236,10 @@ const WealthPillarsChart = () => {
         window.location.href = `/section/${section}`;
       }
     },
+    onHover: (event, elements) => {
+      const canvas = event.native?.target as HTMLCanvasElement;
+      canvas.style.cursor = elements.length ? 'pointer' : 'default';
+    },
     layout: { padding: 20 },
     animation: { animateRotate: true, animateScale: true },
     hover: {
@@ -225,10 +249,11 @@ const WealthPillarsChart = () => {
     },
     elements: {
       arc: {
-        hoverOffset: 50, // Bulging effect when hovered
+        hoverOffset: 50,
       },
     },
   };
+  
 
   if (loading) {
     return (
