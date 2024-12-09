@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -89,12 +89,14 @@ const WealthPillarsChart = ({
     return sectionData || { label: "", value: 0, name };
   };
 
-  // Modified drawing plugin to control render order
-  const drawingPlugin = {
-    id: 'drawingPlugin',
+  // Combined plugin for drawing and text
+  const combinedPlugin = {
+    id: 'combinedPlugin',
     beforeDraw: (chart: any) => {
-      const activeElements = chart.getActiveElements();
       const ctx = chart.ctx;
+      const chartArea = chart.chartArea;
+      const centerX = (chartArea.left + chartArea.right) / 2;
+      const centerY = (chartArea.top + chartArea.bottom) / 2;
       
       // Clear the canvas
       ctx.save();
@@ -102,100 +104,95 @@ const WealthPillarsChart = ({
       ctx.clearRect(0, 0, chart.width, chart.height);
       ctx.restore();
       
-      // First draw the outer ring (dataset 0)
+      // Determine active elements for scaling
+      const activeElements = chart.getActiveElements();
+      
+      // Draw function with optional scaling
+      const drawDataset = (meta: any, sections: string[], isInner: boolean) => {
+        meta.data.forEach((arc: any, index: number) => {
+          const section = sections[index];
+          const data = getDataForSection(section);
+          
+          // Check if this arc is the active element
+          const isActive = activeElements.some(
+            (el: any) => 
+              el.datasetIndex === meta.index && 
+              el.index === index
+          );
+          
+          // Save context and apply scaling if active
+          ctx.save();
+          if (isActive) {
+            ctx.translate(arc.x, arc.y);
+            ctx.scale(1.1, 1.1);
+            ctx.translate(-arc.x, -arc.y);
+          }
+          
+          // Draw the arc
+          arc.draw(ctx);
+          
+          // Restore context
+          ctx.restore();
+          
+          // Draw text on arc
+          ctx.save();
+          
+          // Calculate arc center angle
+          const startAngle = arc.startAngle;
+          const endAngle = arc.endAngle;
+          const centerAngle = (startAngle + endAngle) / 2;
+
+          // Calculate radius
+          const outerRadius = arc.outerRadius;
+          const innerRadius = arc.innerRadius;
+          const midRadius = (outerRadius + innerRadius) / 2;
+
+          // Calculate text position
+          const x = centerX + Math.cos(centerAngle) * midRadius;
+          const y = centerY + Math.sin(centerAngle) * midRadius;
+
+          ctx.translate(x, y);
+          ctx.rotate(centerAngle - Math.PI / 2);
+
+          // Flip text if it's on the left side of the chart
+          if (centerAngle > Math.PI / 2 && centerAngle < (3 * Math.PI) / 2) {
+            ctx.rotate(Math.PI);
+          }
+
+          // Set text styles
+          ctx.fillStyle = isInner ? "#333333" : "#000000";
+          ctx.font = isInner ? "12px Arial" : "14px Arial";
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+
+          // Draw section name
+          ctx.fillText(section, 0, 0);
+
+          // Draw label if exists
+          if (data.label) {
+            ctx.font = "10px Arial";
+            ctx.fillStyle = "#666666";
+            ctx.fillText(data.label, 0, 14);
+          }
+          
+
+          ctx.restore();
+        });
+      };
+      
+      // Draw outer ring (dataset 0)
       const outerMeta = chart.getDatasetMeta(0);
-      outerMeta.data.forEach((arc: any) => {
-        arc.draw(ctx);
-      });
+      drawDataset(outerMeta, outerSections, false);
       
-      // Then draw the inner ring (dataset 1)
+      // Draw inner ring (dataset 1)
       const innerMeta = chart.getDatasetMeta(1);
-      innerMeta.data.forEach((arc: any) => {
-        arc.draw(ctx);
-      });
-      
-      // If there's an active element, draw it last and scaled
-      if (activeElements.length > 0) {
-        const activeElement = activeElements[0];
-        const activeMeta = chart.getDatasetMeta(activeElement.datasetIndex);
-        const activeArc = activeMeta.data[activeElement.index];
-        
-        ctx.save();
-        const centerX = activeArc.x;
-        const centerY = activeArc.y;
-        
-        ctx.translate(centerX, centerY);
-        ctx.scale(1.1, 1.1);
-        ctx.translate(-centerX, -centerY);
-        
-        activeArc.draw(ctx);
-        ctx.restore();
-      }
+      drawDataset(innerMeta, innerSections, true);
       
       // Prevent default drawing
       return false;
     }
   };
 
-  const curvedTextPlugin = {
-    id: "curvedText",
-    afterDraw: (chart: any) => {
-      const ctx = chart.ctx;
-      const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
-      const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
-  
-      ctx.save();
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-  
-      const drawTextOnArc = (meta: any, sections: string[], isInner: boolean) => {
-        meta.data.forEach((arc: any, index: number) => {
-          const section = sections[index];
-          const data = getDataForSection(section);
-  
-          // Calculate middle angle and radius
-          const angle = (arc.startAngle + arc.endAngle) / 2;
-          const baseRadius = (arc.outerRadius + arc.innerRadius) / 2;
-          const radius = isInner ? baseRadius : baseRadius + 25;
-  
-          ctx.save();
-          ctx.translate(
-            centerX + Math.cos(angle) * radius,
-            centerY + Math.sin(angle) * radius
-          );
-          ctx.rotate(angle + Math.PI / 2);
-  
-          // Adjust rotation for upside-down text
-          if (angle > Math.PI / 2 && angle < (3 * Math.PI) / 2) {
-            ctx.rotate(Math.PI);
-          }
-  
-          // Draw section name
-          ctx.fillStyle = isInner ? "#333333" : "#000000";
-          ctx.font = "bold 14px Arial";
-          ctx.fillText(section, 0, 0);
-  
-          // Draw additional label if present
-          if (data.label) {
-            ctx.font = "12px Arial";
-            ctx.fillStyle = "#666666";
-            ctx.fillText(data.label, 0, 16); // Offset for label
-          }
-  
-          ctx.restore();
-        });
-      };
-  
-      // Draw outer text, then inner text
-      const outerMeta = chart.getDatasetMeta(0);
-      const innerMeta = chart.getDatasetMeta(1);
-      drawTextOnArc(outerMeta, outerSections, false);
-      drawTextOnArc(innerMeta, innerSections, true);
-  
-      ctx.restore();
-    },
-  };
-  
   const data: ChartData<"doughnut"> = {
     labels: [],
     datasets: [
@@ -296,7 +293,7 @@ const WealthPillarsChart = ({
         <Doughnut 
           data={data} 
           options={options} 
-          plugins={[curvedTextPlugin, drawingPlugin]} 
+          plugins={[combinedPlugin]} 
         />
         <div className={styles.centerContent}>
           <img src="/pillars.png" alt="Pillars" width={200} height={200} />
