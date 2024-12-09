@@ -1,8 +1,9 @@
 .container {
   position: relative;
   width: 100%;
-  max-width: 800px; /* Increased to accommodate text */
+  max-width: 900px !important;
   margin: 0 auto;
+  overflow: visible;
 }
 
 .container::before {
@@ -13,19 +14,248 @@
 
 .chartWrapper {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.centerContent {
-  position: absolute;
-  top: 51%;
+  top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  border-radius: 50%;
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
+  align-items: center;
+  width: 700px !important;
+  height: 700px !important;
+  overflow: visible;
+}
+
+.centerContent img{
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 280px;
+  height: 280px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  z-index: 10;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.25);
+}
+
+.d {
+  background-color: rgba(255, 255, 255, 1);
+  background-color: transparent;
+  width: 218px;
+  height: 218px;
+  border-radius: 50%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0px 4.95px 4.95px 0px rgba(0, 0, 0, 0.25);
+}
+.img {
+  box-shadow: 0px 4.95px 4.95px 0px rgba(0, 0, 0, 0.25);
+  background-color: aquamarine;
+  border-radius: 50%;
+  & img {
+    position: absolute;
+    left: 3px;
+    top: 2px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 212px;
+    height: 212px;
+    border-radius: 50%;
+  }
+  .dantiDiv {
+    /* //   background-color: #000000;
+      //   background-color: #000000; */
+    box-shadow: 0px 4.95px 4.95px 0px rgba(0, 0, 0, 0.25);
+
+    width: 216px;
+    height: 216px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    position: absolute;
+    left: 50%;
+    top: 51%;
+    transform: translate(-50%, -50%);
+  }
+
+  .name {
+    font-family: "manrope";
+    font-size: 30px;
+    font-weight: 700;
+    text-align: center;
+    color: rgba(255, 255, 255, 1);
+  }
+  .sub {
+    font-family: "manrope";
+    font-size: 25px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 1);
+    text-align: center;
+    margin-top: 10px;
+  }
+}
+.img-small {
+  box-shadow: 0px 4.95px 4.95px 0px rgba(0, 0, 0, 0.25);
+  background-color: aquamarine;
+  border-radius: 50%;
+  display: none;
+  & img {
+    position: absolute;
+    left: 3px;
+    top: 2px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 212px;
+    height: 212px;
+    border-radius: 50%;
+  }
+}
+.back {
+  width: 450px;
+  height: 450px;
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* height: 500px; */
+}
+.Doughnut {
+  & canvas {
+    width: 200px;
+    z-index: 10;
+  }
+}
+
+.chartWrapper canvas{
+  width: 720px !important;
+  height: 720px !important;
+}
+
+.piller-small {
+  display: none;
+}
+
+@media only screen and (max-width: 600px) {
+  .chartWrapper {
+    width: 350px !important;
+    height: 350px !important;
+    & canvas {
+    }
+  }
+  .d {
+    background-color: transparent;
+    background-color: rgba(220, 218, 218, 0.627);
+    width: 148px;
+    height: 148px;
+    border-radius: 50%;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0px 4.95px 4.95px 0px rgba(0, 0, 0, 0.25);
+  }
+  .img {
+    box-shadow: 0px 4.95px 4.95px 0px rgba(0, 0, 0, 0.25);
+    background-color: aquamarine;
+    border-radius: 50%;
+    & img {
+      position: absolute;
+      left: 3px;
+      top: 3px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 142px;
+      height: 142px;
+      border-radius: 50%;
+      box-shadow: 0px 4.95px 4.95px 0px rgba(0, 0, 0, 0.25);
+    }
+    .dantiDiv {
+    }
+
+    .name {
+      font-family: "manrope";
+      font-size: 20px;
+      font-weight: 700;
+      text-align: center;
+      color: rgba(255, 255, 255, 1);
+    }
+    .sub {
+      font-family: "manrope";
+      font-size: 12px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 1);
+      text-align: center;
+      margin-top: 10px;
+    }
+  }
+  .centerContent {
+  }
+  .back {
+    width: 300px;
+    height: 300px;
+  }
+  .piller-small {
+    display: block;
+  }
+  .img {
+    display: none;
+  }
+  .img-small {
+    box-shadow: 0px 4.95px 4.95px 0px rgba(0, 0, 0, 0.25);
+    background-color: aquamarine;
+    border-radius: 50%;
+    display: block;
+    & img {
+      position: absolute;
+      left: -2px;
+      top: 2px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 152px;
+      height: 152px;
+      border-radius: 50%;
+    }
+  }
+}
+.risk-wrap {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  justify-content: center;
+  font-family: Manrope;
+  font-size: 17.34px;
+  font-weight: 500;
+  line-height: 26.35px;
+  text-align: left;
+  text-underline-position: from-font;
+  text-decoration-skip-ink: none;
+  margin-top: 20px;
+  & .dot,
+  .dot2,
+  .dot3 {
+    width: 17.34px;
+    height: 17.34px;
+    border-radius: 50%;
+    background-color: rgba(255, 0, 0, 1);
+  }
+  & .dot2 {
+    background-color: rgba(255, 204, 0, 1);
+  }
+  & .dot3 {
+    background-color: rgba(0, 128, 39, 1);
+  }
+  .dot-div {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
 }
