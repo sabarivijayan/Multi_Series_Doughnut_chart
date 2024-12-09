@@ -1,6 +1,6 @@
-'use client';
-
-import { useEffect, useState } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
+import { useState } from "react";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -8,9 +8,9 @@ import {
   Legend,
   ChartData,
   ChartOptions,
-} from 'chart.js';
-import { Doughnut } from 'react-chartjs-2';
-import styles from './chart-structure.module.css';
+} from "chart.js";
+import { Doughnut } from "react-chartjs-2";
+import styles from "./chart-structure.module.css";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -20,78 +20,70 @@ interface PillarData {
   name: string;
 }
 
-const WealthPillarsChart = () => {
-  const [chartData, setChartData] = useState<PillarData[]>([]);
-  const [loading, setLoading] = useState(true);
+interface WealthPillarsChartProps {
+  onChartClick?: (section: string) => void;
+  setSelectedCategory: (category: number) => void;
+  selectedCategory: number | null;
+}
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch('http://localhost:4000/api/chart-data');
-        const data = await response.json();
-        setChartData(data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+const WealthPillarsChart = ({
+  onChartClick,
+  setSelectedCategory,
+}: WealthPillarsChartProps) => {
+  const [chartData] = useState<PillarData[]>([]);
+  const [patterns, setPatterns] = useState<{
+    sharedInner: CanvasPattern | null;
+  }>({ sharedInner: null });
 
-    fetchData();
-  }, []);
+  const sharedInnerImagePath = "./gold12.png";
 
-  const getColor = (
-    ctx: CanvasRenderingContext2D,
-    chartArea: any,
-    numericValue: number
-  ) => {
-    const { width, height } = chartArea;
-    const gradient = ctx.createLinearGradient(0, height, width, 0);
-
-  
-    if (numericValue >= 1 && numericValue <= 2) {
-      // Red gradient
-      gradient.addColorStop(0, '#FF0101'); // Bright red
-      gradient.addColorStop(1, '#997A00'); // Dark red
-    } else if (numericValue >= 3 && numericValue <= 4) {
-      // Orange gradient
-      gradient.addColorStop(0, '#F67119'); // Bright orange
-      gradient.addColorStop(1, '#90420F'); // Dark orange
-    } else if (numericValue >= 5 && numericValue <= 6) {
-      // Yellow gradient
-      gradient.addColorStop(0, '#FFFF00'); // Bright yellow
-      gradient.addColorStop(1, '#8C8C00'); // Dark yellow
-    } else if (numericValue === 7) {
-      // Lime gradient
-      gradient.addColorStop(0, '#CCFF33'); // Bright lime
-      gradient.addColorStop(1, '#7A991F'); // Dark lime
-    } else if (numericValue >= 8 && numericValue <= 10) {
-      // Green gradient
-      gradient.addColorStop(0, '#78E019'); // Bright green
-      gradient.addColorStop(1, '#008027'); // Dark green
-    } else {
-      // Default grey gradient
-      gradient.addColorStop(0, '#CCCCCC'); // Light grey
-      gradient.addColorStop(1, '#999999'); // Dark grey
-    }
-  
-    return gradient;
+  const outerColors: Record<string, string> = {
+    Assets: "#DEA839",
+    Advisors: "#DEA839",
+    Documentation: "#DEA839",
+    Structures: "#DEA839",
+    Governance: "#DEA839",
+    "Sustainable Philanthropy": "#DEA839",
   };
-  
+// Function to create pattern from image URL based on score
+const createPattern = async (
+  ctx: CanvasRenderingContext2D,
+  imagePath: string
+): Promise<CanvasPattern | null> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const pattern = ctx.createPattern(img, "repeat");
+      resolve(pattern);
+    };
+    img.onerror = () => resolve(null);
+    img.src = imagePath;
+  });
+};
 
-  const outerSections = ['Governance', 'Structures', 'Sustainable Philanthropy', 'Assets', 'Advisors', 'Documentation'];
-  const innerSections = ['Vision', 'Education', 'Health', 'Communication'];
+  const outerSections = [
+    "Assets",
+    "Advisors",
+    "Documentation",
+    "Structures",
+    "Governance",
+    "Sustainable Philanthropy",
+  ];
+
+  const innerSections = ["Health", "Vision", "Education", "Communication"];
 
   const normalize = (str: string) => str.trim().toLowerCase();
 
   const getDataForSection = (name: string): PillarData => {
     const normalizedSectionName = normalize(name);
-    const sectionData = chartData.find(item => normalize(item.name) === normalizedSectionName);
-    return sectionData || { label: '0/10', value: 0, name };
+    const sectionData = chartData.find(
+      (item) => normalize(item.name) === normalizedSectionName
+    );
+    return sectionData || { label: "", value: 0, name };
   };
 
   const curvedTextPlugin = {
-    id: 'curvedText',
+    id: "curvedText",
     afterDraw: (chart: any) => {
       const ctx = chart.ctx;
       const chartArea = chart.chartArea;
@@ -99,25 +91,23 @@ const WealthPillarsChart = () => {
       const centerY = (chartArea.top + chartArea.bottom) / 2;
 
       ctx.save();
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
 
       const drawTextOnArc = (meta: any, sections: any, isInner: any) => {
         meta.data.forEach((arc: any, index: any) => {
           const section = sections[index];
           const data = getDataForSection(section);
-
           const angle = (arc.startAngle + arc.endAngle) / 2; // Middle angle
           const radius = isInner
             ? (arc.outerRadius + arc.innerRadius) / 2
             : (arc.outerRadius + arc.innerRadius) / 2;
-
           const x = centerX + Math.cos(angle) * radius;
           const y = centerY + Math.sin(angle) * radius;
 
           ctx.save();
-          ctx.fillStyle = '#000'; // Custom text color
-          ctx.font = '16px Arial'; // Custom font style
+          ctx.fillStyle = "#000"; // Custom text color
+          ctx.font = "16px Arial"; // Custom font style
           ctx.translate(x, y);
 
           if (angle >= 0 && angle <= Math.PI / 2) {
@@ -130,7 +120,7 @@ const WealthPillarsChart = () => {
             ctx.rotate(angle + Math.PI / 2);
           }
 
-          ctx.fillText(section, 0, -10); // Section name
+          ctx.fillText(section, 0, -1); // Section name
           ctx.fillText(data.label, 0, 10); // Data label
           ctx.restore();
         });
@@ -146,51 +136,45 @@ const WealthPillarsChart = () => {
     },
   };
 
-  const data: ChartData<'doughnut'> = {
+  const data: ChartData<"doughnut"> = {
     labels: [],
     datasets: [
       {
         data: outerSections.map(() => 1),
-        backgroundColor: function (context) {
-          const { chart } = context;
-          const { ctx, chartArea } = chart;
-  
-          if (!chartArea) return '#CCCCCC'; // Default fallback color
-  
-          return outerSections.map((section) => {
-            const data = getDataForSection(section);
-            const numericValue = parseInt(String(data.label).split('/')[0], 10);
-            return getColor(ctx, chartArea, numericValue);
-          })[context.dataIndex];
-        },
-        borderColor: '#FFFFFF',
+        backgroundColor: outerSections.map((section) => outerColors[section]),
+        borderColor: "#FFFFFF",
         borderWidth: 2,
-        weight: 40,
+        weight: 60,
       },
       {
         data: innerSections.map(() => 1),
         backgroundColor: function (context) {
           const { chart } = context;
-          const { ctx, chartArea } = chart;
-  
-          if (!chartArea) return '#CCCCCC'; // Default fallback color
-  
-          return innerSections.map((section) => {
-            const data = getDataForSection(section);
-            const numericValue = parseInt(String(data.label).split('/')[0], 10);
-            return getColor(ctx, chartArea, numericValue);
-          })[context.dataIndex];
+          const { ctx } = chart;
+
+          if (!ctx) return "#CCCCCC";
+
+          // Create the shared pattern if it doesn't already exist
+          if (!patterns.sharedInner) {
+            createPattern(ctx, sharedInnerImagePath).then((pattern) => {
+              if (pattern) {
+                setPatterns((prev) => ({ ...prev, sharedInner: pattern }));
+              }
+            });
+          }
+
+          return patterns.sharedInner || "#CCCCCC";
         },
-        borderColor: '#FFFFFF',
+        borderColor: "#FFFFFF",
         borderWidth: 2,
-        weight: 40,
+        weight: 80,
       },
     ],
   };
-  
-  const options: ChartOptions<'doughnut'> = {
+
+  const options: ChartOptions<"doughnut"> = {
     responsive: true,
-    cutout: '50%',
+    cutout: "50%",
     plugins: {
       legend: { display: false },
       tooltip: {
@@ -206,26 +190,39 @@ const WealthPillarsChart = () => {
         },
       },
     },
-    onClick: (_event, elements, chart) => {
+    onClick: (_event, elements) => {
       if (elements.length > 0) {
         const chartElement = elements[0];
         const section =
           chartElement.datasetIndex === 0
             ? outerSections[chartElement.index]
             : innerSections[chartElement.index];
-        window.location.href = `/section/${section}`;
+
+        if (onChartClick) {
+          onChartClick(section);
+          if (chartElement.datasetIndex !== 0) {
+            const index = innerSections.indexOf(
+              innerSections[chartElement.index]
+            );
+            setSelectedCategory(index + 1);
+          } else {
+            const index = outerSections.indexOf(
+              outerSections[chartElement.index]
+            );
+            setSelectedCategory(index + 5);
+          }
+        }
       }
     },
     onHover: (event, elements) => {
       const canvas = event.native?.target as HTMLCanvasElement;
-      canvas.style.cursor = elements.length ? 'pointer' : 'default';
+      canvas.style.cursor = elements.length ? "pointer" : "default";
     },
-    layout: { padding: 20 },
+    layout: { padding: 10 },
     animation: { animateRotate: true, animateScale: true },
     hover: {
-      mode: 'nearest',
+      mode: "nearest",
       intersect: true,
-      animationDuration: 400, // Hover animation duration
     },
     elements: {
       arc: {
@@ -234,24 +231,16 @@ const WealthPillarsChart = () => {
     },
   };
 
-  if (loading) {
-    return (
-      <div className={styles.container}>
-        <p>Loading...</p>
-      </div>
-    );
-  } else {
-    return (
-      <div className={styles.container}>
-        <div className={styles.chartWrapper}>
-          <Doughnut data={data} options={options} plugins={[curvedTextPlugin]} />
-          <div className={styles.centerContent}>
-            <img src="./Group.svg" alt="Pillars" />
-          </div>
+  return (
+    <div className={styles.container}>
+      <div className={styles.chartWrapper}>
+        <Doughnut data={data} options={options} plugins={[curvedTextPlugin]} />
+        <div className={styles.centerContent}>
+          <img src="/pillars.png" alt="Pillars" width={200} height={200} />
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 };
 
 export default WealthPillarsChart;
