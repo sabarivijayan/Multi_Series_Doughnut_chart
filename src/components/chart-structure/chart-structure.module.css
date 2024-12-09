@@ -3,6 +3,7 @@
   width: 100%;
   max-width: 900px !important;
   margin: 0 auto;
+  overflow: visible;
 }
 
 .container::before {
@@ -22,6 +23,7 @@
   align-items: center;
   width: 700px !important;
   height: 700px !important;
+  overflow: visible;
 }
 
 .centerContent img{
@@ -132,8 +134,8 @@
 }
 
 .chartWrapper canvas{
-  width: 650px !important;
-  height: 650px !important;
+  width: 720px !important;
+  height: 720px !important;
 }
 
 .piller-small {

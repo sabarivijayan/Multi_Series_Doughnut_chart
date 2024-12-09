@@ -31,11 +31,16 @@ const WealthPillarsChart = ({
   setSelectedCategory,
 }: WealthPillarsChartProps) => {
   const [chartData] = useState<PillarData[]>([]);
-  const [patterns, setPatterns] = useState<{
-    sharedInner: CanvasPattern | null;
-  }>({ sharedInner: null });
+  const [patterns, setPatterns] = useState<
+    Record<string, CanvasPattern | null>
+  >({});
 
-  const sharedInnerImagePath = "./gold12.png";
+  const sectionImages: Record<string, string> = {
+    Health: "./gold19.png",
+    Vision: "./gold21.png",
+    Education: "./gold.png",
+    Communication: "./gold.png",
+  };
 
   const outerColors: Record<string, string> = {
     Assets: "#DEA839",
@@ -45,21 +50,23 @@ const WealthPillarsChart = ({
     Governance: "#DEA839",
     "Sustainable Philanthropy": "#DEA839",
   };
-// Function to create pattern from image URL based on score
-const createPattern = async (
-  ctx: CanvasRenderingContext2D,
-  imagePath: string
-): Promise<CanvasPattern | null> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const pattern = ctx.createPattern(img, "repeat");
-      resolve(pattern);
-    };
-    img.onerror = () => resolve(null);
-    img.src = imagePath;
-  });
-};
+
+  const createPattern = async (
+    ctx: CanvasRenderingContext2D,
+    imagePath: string
+  ): Promise<CanvasPattern | null> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const pattern = ctx.createPattern(img, "repeat");
+        resolve(pattern);
+      };
+      img.onerror = () => {
+        resolve(null);
+      };
+      img.src = imagePath;
+    });
+  };
 
   const outerSections = [
     "Assets",
@@ -82,60 +89,113 @@ const createPattern = async (
     return sectionData || { label: "", value: 0, name };
   };
 
+  // Modified drawing plugin to control render order
+  const drawingPlugin = {
+    id: 'drawingPlugin',
+    beforeDraw: (chart: any) => {
+      const activeElements = chart.getActiveElements();
+      const ctx = chart.ctx;
+      
+      // Clear the canvas
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.clearRect(0, 0, chart.width, chart.height);
+      ctx.restore();
+      
+      // First draw the outer ring (dataset 0)
+      const outerMeta = chart.getDatasetMeta(0);
+      outerMeta.data.forEach((arc: any) => {
+        arc.draw(ctx);
+      });
+      
+      // Then draw the inner ring (dataset 1)
+      const innerMeta = chart.getDatasetMeta(1);
+      innerMeta.data.forEach((arc: any) => {
+        arc.draw(ctx);
+      });
+      
+      // If there's an active element, draw it last and scaled
+      if (activeElements.length > 0) {
+        const activeElement = activeElements[0];
+        const activeMeta = chart.getDatasetMeta(activeElement.datasetIndex);
+        const activeArc = activeMeta.data[activeElement.index];
+        
+        ctx.save();
+        const centerX = activeArc.x;
+        const centerY = activeArc.y;
+        
+        ctx.translate(centerX, centerY);
+        ctx.scale(1.1, 1.1);
+        ctx.translate(-centerX, -centerY);
+        
+        activeArc.draw(ctx);
+        ctx.restore();
+      }
+      
+      // Prevent default drawing
+      return false;
+    }
+  };
+
   const curvedTextPlugin = {
     id: "curvedText",
     afterDraw: (chart: any) => {
       const ctx = chart.ctx;
-      const chartArea = chart.chartArea;
-      const centerX = (chartArea.left + chartArea.right) / 2;
-      const centerY = (chartArea.top + chartArea.bottom) / 2;
-
+      const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
+      const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
+  
       ctx.save();
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-
-      const drawTextOnArc = (meta: any, sections: any, isInner: any) => {
-        meta.data.forEach((arc: any, index: any) => {
+  
+      const drawTextOnArc = (meta: any, sections: string[], isInner: boolean) => {
+        meta.data.forEach((arc: any, index: number) => {
           const section = sections[index];
           const data = getDataForSection(section);
-          const angle = (arc.startAngle + arc.endAngle) / 2; // Middle angle
-          const radius = isInner
-            ? (arc.outerRadius + arc.innerRadius) / 2
-            : (arc.outerRadius + arc.innerRadius) / 2;
-          const x = centerX + Math.cos(angle) * radius;
-          const y = centerY + Math.sin(angle) * radius;
-
+  
+          // Calculate middle angle and radius
+          const angle = (arc.startAngle + arc.endAngle) / 2;
+          const baseRadius = (arc.outerRadius + arc.innerRadius) / 2;
+          const radius = isInner ? baseRadius : baseRadius + 25;
+  
           ctx.save();
-          ctx.fillStyle = "#000"; // Custom text color
-          ctx.font = "16px Arial"; // Custom font style
-          ctx.translate(x, y);
-
-          if (angle >= 0 && angle <= Math.PI / 2) {
-            ctx.rotate(angle + Math.PI / 2 + Math.PI);
-          } else if (angle > (3 * Math.PI) / 2 && angle <= 2 * Math.PI) {
-            ctx.rotate(angle + Math.PI / 2 + Math.PI);
-          } else if (angle >= Math.PI / 2 && angle <= Math.PI) {
-            ctx.rotate(angle + Math.PI / 2 + Math.PI);
-          } else {
-            ctx.rotate(angle + Math.PI / 2);
+          ctx.translate(
+            centerX + Math.cos(angle) * radius,
+            centerY + Math.sin(angle) * radius
+          );
+          ctx.rotate(angle + Math.PI / 2);
+  
+          // Adjust rotation for upside-down text
+          if (angle > Math.PI / 2 && angle < (3 * Math.PI) / 2) {
+            ctx.rotate(Math.PI);
           }
-
-          ctx.fillText(section, 0, -1); // Section name
-          ctx.fillText(data.label, 0, 10); // Data label
+  
+          // Draw section name
+          ctx.fillStyle = isInner ? "#333333" : "#000000";
+          ctx.font = "bold 14px Arial";
+          ctx.fillText(section, 0, 0);
+  
+          // Draw additional label if present
+          if (data.label) {
+            ctx.font = "12px Arial";
+            ctx.fillStyle = "#666666";
+            ctx.fillText(data.label, 0, 16); // Offset for label
+          }
+  
           ctx.restore();
         });
       };
-
+  
+      // Draw outer text, then inner text
       const outerMeta = chart.getDatasetMeta(0);
-      drawTextOnArc(outerMeta, outerSections, false);
-
       const innerMeta = chart.getDatasetMeta(1);
+      drawTextOnArc(outerMeta, outerSections, false);
       drawTextOnArc(innerMeta, innerSections, true);
-
+  
       ctx.restore();
     },
   };
-
+  
   const data: ChartData<"doughnut"> = {
     labels: [],
     datasets: [
@@ -143,52 +203,52 @@ const createPattern = async (
         data: outerSections.map(() => 1),
         backgroundColor: outerSections.map((section) => outerColors[section]),
         borderColor: "#FFFFFF",
-        borderWidth: 2,
+        borderWidth: 0.5,
         weight: 60,
+        hoverBackgroundColor: outerSections.map((section) => outerColors[section]),
       },
       {
         data: innerSections.map(() => 1),
         backgroundColor: function (context) {
           const { chart } = context;
           const { ctx } = chart;
-
           if (!ctx) return "#CCCCCC";
 
-          // Create the shared pattern if it doesn't already exist
-          if (!patterns.sharedInner) {
-            createPattern(ctx, sharedInnerImagePath).then((pattern) => {
+          const section = innerSections[context.dataIndex];
+          const imagePath = sectionImages[section];
+          const patternKey = `inner_${section}`;
+
+          if (!patterns[patternKey]) {
+            createPattern(ctx, imagePath).then((pattern) => {
               if (pattern) {
-                setPatterns((prev) => ({ ...prev, sharedInner: pattern }));
+                setPatterns((prev) => ({ ...prev, [patternKey]: pattern }));
               }
             });
           }
 
-          return patterns.sharedInner || "#CCCCCC";
+          return patterns[patternKey] || "#CCCCCC";
         },
         borderColor: "#FFFFFF",
-        borderWidth: 2,
+        borderWidth: 0.5,
         weight: 80,
       },
     ],
   };
 
   const options: ChartOptions<"doughnut"> = {
+    layout: {
+      padding: {
+        top: 60,
+        bottom: 60,
+        left: 60,
+        right: 60
+      }
+    },
     responsive: true,
     cutout: "50%",
     plugins: {
       legend: { display: false },
-      tooltip: {
-        enabled: false,
-        callbacks: {
-          label: function (context) {
-            const sections =
-              context.datasetIndex === 0 ? outerSections : innerSections;
-            const section = sections[context.dataIndex];
-            const data = getDataForSection(section);
-            return `${section}: ${data.label}`;
-          },
-        },
-      },
+      tooltip: { enabled: false },
     },
     onClick: (_event, elements) => {
       if (elements.length > 0) {
@@ -217,24 +277,27 @@ const createPattern = async (
     onHover: (event, elements) => {
       const canvas = event.native?.target as HTMLCanvasElement;
       canvas.style.cursor = elements.length ? "pointer" : "default";
+      canvas.style.overflow = "visible";
     },
-    layout: { padding: 10 },
-    animation: { animateRotate: true, animateScale: true },
+    animation: {
+      animateRotate: true,
+      animateScale: true,
+      duration: 200
+    },
     hover: {
       mode: "nearest",
       intersect: true,
-    },
-    elements: {
-      arc: {
-        hoverOffset: 50,
-      },
-    },
+    }
   };
 
   return (
     <div className={styles.container}>
       <div className={styles.chartWrapper}>
-        <Doughnut data={data} options={options} plugins={[curvedTextPlugin]} />
+        <Doughnut 
+          data={data} 
+          options={options} 
+          plugins={[curvedTextPlugin, drawingPlugin]} 
+        />
         <div className={styles.centerContent}>
           <img src="/pillars.png" alt="Pillars" width={200} height={200} />
         </div>
